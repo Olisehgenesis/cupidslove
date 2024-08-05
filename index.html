@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta property="dscvr:canvas:version" content="vNext" />
+    <title>Getting started example</title>
+  </head>
+  <body>
+    <div id="app">
+
+      <div id="game-container">
+        <div id="bow-and-arrow">
+          <div id="bow"></div>
+          <div id="arrow"></div>
+        </div>
+        <div id="target"></div>
+        <div id="score">Score: 0</div>
+        <div id="time">Time: 30s</div>
+        <div id="message"></div>
+        <div id="high-score">High Score: 0</div>
+        <button id="start-button">Start Game</button>
+      </div>
+      
+      <style>
+        body, html {
+          margin: 0;
+          padding: 0;
+          height: 100%;
+          overflow: hidden;
+        }
+        #game-container {
+          width: 100vw;
+          height: 100vh;
+          position: relative;
+          background: linear-gradient(to bottom, #ffe6f2, #ffb3d9);
+          overflow: hidden;
+        }
+        #bow-and-arrow {
+          position: absolute;
+          left: 50px;
+          bottom: 50px;
+          cursor: pointer;
+        }
+        #bow {
+          width: 50px;
+          height: 100px;
+          border: 5px solid #8b4513;
+          border-radius: 100px 0 0 100px;
+          border-right: none;
+          transition: transform 0.3s ease;
+        }
+        #bow:hover {
+          transform: scale(1.1);
+        }
+        #arrow {
+          width: 60px;
+          height: 5px;
+          background-color: #8b4513;
+          position: absolute;
+          top: 50%;
+          left: 40px;
+          transform-origin: left center;
+          transition: transform 0.3s ease;
+        }
+        #target {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: radial-gradient(circle, red 20%, white 20%, white 40%, red 40%, red 60%, white 60%, white 80%, red 80%);
+          position: absolute;
+          right: 50px;
+          top: 50%;
+          transform: translateY(-50%);
+          transition: all 0.5s ease;
+          animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+          from { transform: translateY(-50%) scale(1); }
+          to { transform: translateY(-50%) scale(1.1); }
+        }
+        #score, #time, #message, #high-score {
+          position: absolute;
+          font-family: Arial, sans-serif;
+          font-size: 24px;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        #score { top: 20px; left: 20px; }
+        #time { top: 20px; right: 20px; }
+        #message { top: 60px; left: 20px; color: #ff69b4; font-weight: bold; }
+        #high-score { top: 100px; left: 20px; }
+        #start-button {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          padding: 15px 30px;
+          font-size: 24px;
+          background-color: #ff69b4;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border-radius: 10px;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #start-button:hover {
+          background-color: #ff1493;
+          transform: translate(-50%, -50%) scale(1.05);
+        }
+      </style>
+      
+      <script>
+        const bow = document.getElementById('bow-and-arrow');
+        const arrow = document.getElementById('arrow');
+        const target = document.getElementById('target');
+        const scoreElement = document.getElementById('score');
+        const timeElement = document.getElementById('time');
+        const messageElement = document.getElementById('message');
+        const highScoreElement = document.getElementById('high-score');
+        const startButton = document.getElementById('start-button');
+      
+        let isAiming = false;
+        let score = 0;
+        let timeLeft = 30;
+        let gameInterval;
+        let highScore = localStorage.getItem('highScore') || 0;
+      
+        highScoreElement.textContent = `High Score: ${highScore}`;
+      
+        bow.addEventListener('mousedown', startAiming);
+        document.addEventListener('mousemove', aim);
+        document.addEventListener('mouseup', shoot);
+        startButton.addEventListener('click', startGame);
+      
+        function startGame() {
+          score = 0;
+          timeLeft = 30;
+          scoreElement.textContent = `Score: ${score}`;
+          timeElement.textContent = `Time: ${timeLeft}s`;
+          messageElement.textContent = '';
+          startButton.style.display = 'none';
+      
+          gameInterval = setInterval(() => {
+            timeLeft--;
+            timeElement.textContent = `Time: ${timeLeft}s`;
+      
+            if (timeLeft <= 0) {
+              endGame();
+            }
+          }, 1000);
+      
+          moveTarget();
+        }
+      
+        function endGame() {
+          clearInterval(gameInterval);
+          isAiming = false;
+          startButton.style.display = 'block';
+          startButton.textContent = 'Play Again';
+      
+          if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('highScore', highScore);
+            highScoreElement.textContent = `High Score: ${highScore}`;
+            messageElement.textContent = "New High Score! Cupid's proud of you!";
+          } else {
+            messageElement.textContent = "Game Over! Spread more love next time!";
+          }
+        }
+      
+        function startAiming(e) {
+          if (timeLeft > 0) {
+            isAiming = true;
+          }
+        }
+      
+        function aim(e) {
+          if (!isAiming) return;
+          const rect = bow.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const angle = Math.atan2(y, x);
+          arrow.style.transform = `rotate(${angle}rad)`;
+        }
+      
+        function shoot() {
+          if (!isAiming || timeLeft <= 0) return;
+          isAiming = false;
+      
+          const arrowRect = arrow.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+      
+          const distance = Math.abs(arrowRect.right - targetRect.left);
+          const scoreChange = Math.max(0, 100 - Math.floor(distance / 5));
+          score += scoreChange;
+          scoreElement.textContent = `Score: ${score}`;
+      
+          displayMessage(scoreChange);
+      
+          // Animate arrow
+          arrow.style.transition = 'transform 0.5s ease';
+          arrow.style.transform = 'translateX(100vw) rotate(0deg)';
+      
+          // Reset arrow position
+          setTimeout(() => {
+            arrow.style.transition = 'none';
+            arrow.style.transform = 'rotate(0deg)';
+            setTimeout(() => {
+              arrow.style.transition = 'transform 0.3s ease';
+            }, 50);
+          }, 500);
+      
+          // Move target to a new random position
+          moveTarget();
+        }
+      
+        function moveTarget() {
+          const gameRect = document.getElementById('game-container').getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+          const maxX = gameRect.width - targetRect.width;
+          const maxY = gameRect.height - targetRect.height;
+          
+          const newX = Math.random() * (maxX - 100) + 100; // Keep some distance from the left edge
+          const newY = Math.random() * maxY;
+          
+          target.style.right = `${maxX - newX}px`;
+          target.style.top = `${newY}px`;
+        }
+      
+        function displayMessage(scoreChange) {
+          let message;
+          if (scoreChange >= 90) {
+            message = "Perfect shot! Love is in the air!";
+          } else if (scoreChange >= 70) {
+            message = "Great aim! Cupid would be proud!";
+          } else if (scoreChange >= 50) {
+            message = "Nice shot! Keep spreading the love!";
+          } else if (scoreChange >= 30) {
+            message = "So close! Love takes practice!";
+          } else {
+            message = "Keep trying! Love will find a way!";
+          }
+          messageElement.textContent = message;
+          
+          // Animate message
+          messageElement.style.animation = 'none';
+          messageElement.offsetHeight; // Trigger reflow
+          messageElement.style.animation = 'fadeInOut 2s ease';
+        }
+      
+        // Ensure the game fits the screen on resize
+        window.addEventListener('resize', () => {
+          moveTarget();
+        });
+      </script>
+      
+      <style>
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateY(-20px); }
+          10% { opacity: 1; transform: translateY(0); }
+          90% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(20px); }
+        }
+      </style>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
